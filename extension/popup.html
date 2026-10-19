@@ -1,0 +1,75 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+  <meta charset="utf-8">
+  <title>Universal Downloader</title>
+  <link rel="stylesheet" href="popup.css">
+</head>
+<body>
+  <header class="header">
+    <div class="logo">
+      <img src="icons/icon32.png" alt="" width="22" height="22">
+      <span class="logo-title">Universal Downloader</span>
+    </div>
+    <div class="header-actions">
+      <button id="btn-settings-toggle" class="icon-btn" title="Настройки сервера">⚙️</button>
+    </div>
+  </header>
+
+  <!-- Блок статуса сервера -->
+  <div class="status-bar" id="status-bar">
+    <span class="status-dot checking" id="status-dot"></span>
+    <span class="status-text" id="status-text">Проверка связи...</span>
+    <span class="proxy-badge hidden" id="proxy-badge" title="Tinyproxy активен">🛡 VPN</span>
+  </div>
+
+  <!-- Панель настроек (скрыта по умолчанию) -->
+  <div class="settings-panel hidden" id="settings-panel">
+    <div class="field-group">
+      <label for="server-url">Адрес сервера Universal Downloader:</label>
+      <div class="input-row">
+        <input type="text" id="server-url" placeholder="http://192.168.1.2:8765">
+        <button id="btn-save-server" class="btn small primary">Сохранить</button>
+      </div>
+      <small class="muted">Укажите IP-адрес вашего NAS или локального сервера</small>
+    </div>
+  </div>
+
+  <!-- Карточка текущей страницы -->
+  <div class="card current-page">
+    <div class="page-title" id="page-title">Определение страницы...</div>
+    <div class="page-url" id="page-url">...</div>
+
+    <div class="target-row">
+      <span class="muted-label">Куда качать:</span>
+      <label><input type="radio" name="popup-target" value="device" checked> 📱 На ПК / телефон</label>
+      <label><input type="radio" name="popup-target" value="server"> 🖥 На сервер (NAS)</label>
+    </div>
+
+    <div class="action-buttons">
+      <button class="btn primary" id="btn-download-video">⚡ Скачать лучшее видео</button>
+      <button class="btn secondary" id="btn-download-audio">🎵 Скачать MP3</button>
+    </div>
+
+    <div class="feedback hidden" id="action-feedback"></div>
+  </div>
+
+  <!-- Секция активных загрузок -->
+  <div class="section-title">
+    <span>Активные загрузки</span>
+    <span class="badge" id="tasks-count">0</span>
+  </div>
+  <div class="tasks-list" id="tasks-list">
+    <div class="empty-tasks">Нет активных загрузок</div>
+  </div>
+
+  <!-- Футер со ссылками -->
+  <footer class="footer">
+    <button class="link-btn" id="btn-open-web">🌐 Открыть сайт</button>
+    <button class="link-btn" id="btn-open-files">📁 Файлы на сервере</button>
+  </footer>
+
+  <script src="config.js"></script>
+  <script src="popup.js"></script>
+</body>
+</html>

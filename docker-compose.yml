@@ -1,0 +1,25 @@
+version: '3.8'
+
+services:
+  universal-downloader:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    image: universal-downloader:latest
+    container_name: universal-downloader
+    restart: unless-stopped
+    ports:
+      - "8765:8765"
+    environment:
+      - PUID=1000
+      - PGID=100
+      - DOCKER=1
+      - HOST=0.0.0.0
+      - PORT=8765
+      - DOWNLOAD_DIR=/downloads
+      - CONFIG_DIR=/config
+      - PROXY=http://192.168.1.2:8899
+      - USE_PROXY=1
+    volumes:
+      - ./config:/config
+      - ./downloads:/downloads

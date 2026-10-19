@@ -1,0 +1,324 @@
+<!doctype html>
+<html lang="ru">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Справка — Универсальный скачиватель</title>
+<link rel="icon" href="/favicon.ico">
+<script>
+  try {
+    const t = localStorage.getItem('theme');
+    if (t === 'light' || t === 'dark') document.documentElement.dataset.theme = t;
+  } catch { /* тема по умолчанию */ }
+</script>
+<style>
+  :root {
+    --bg: #f4f5f7; --card: #ffffff; --text: #16181d; --muted: #6b7280;
+    --line: #e3e5ea; --accent: #2f6df6; --accent-soft: #e8efff;
+    --ok: #16a34a; --err: #dc2626; --warn: #b45309; --chip: #f1f3f6; --code: #f6f7f9;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root:not([data-theme="light"]) {
+      color-scheme: dark;
+      --bg: #111317; --card: #1a1d23; --text: #eceef2; --muted: #9aa1ad;
+      --line: #2a2e36; --accent: #5b8cff; --accent-soft: #1f2a44;
+      --ok: #22c55e; --err: #f87171; --warn: #fbbf24; --chip: #232731; --code: #14161b;
+    }
+  }
+  :root[data-theme="dark"] {
+    color-scheme: dark;
+    --bg: #111317; --card: #1a1d23; --text: #eceef2; --muted: #9aa1ad;
+    --line: #2a2e36; --accent: #5b8cff; --accent-soft: #1f2a44;
+    --ok: #22c55e; --err: #f87171; --warn: #fbbf24; --chip: #232731; --code: #14161b;
+  }
+  * { box-sizing: border-box; }
+  body {
+    margin: 0; background: var(--bg); color: var(--text);
+    font: 15px/1.55 "Segoe UI", system-ui, sans-serif;
+  }
+  main { max-width: 860px; margin: 0 auto; padding: 32px 16px 60px; }
+  a { color: var(--accent); }
+  .back { display: inline-block; margin-bottom: 16px; text-decoration: none; font-weight: 600; }
+  h1 { font-size: 26px; margin: 0 0 4px; letter-spacing: -0.01em; }
+  h2 { font-size: 19px; margin: 36px 0 12px; }
+  .sub { color: var(--muted); margin: 0; }
+  .card {
+    background: var(--card); border: 1px solid var(--line); border-radius: 16px;
+    padding: 18px; margin-top: 12px;
+  }
+  button {
+    font: inherit; cursor: pointer; border: 0; border-radius: 10px;
+    padding: 10px 16px; background: var(--accent); color: #fff; font-weight: 600;
+  }
+  button:disabled { opacity: .6; cursor: default; }
+  code, pre { font-family: Consolas, "Cascadia Mono", monospace; font-size: 13.5px; }
+  code { background: var(--code); border: 1px solid var(--line); border-radius: 5px; padding: 1px 5px; }
+  kbd {
+    font: 12px/1 Consolas, "Cascadia Mono", monospace; padding: 2px 5px; border-radius: 4px; white-space: nowrap;
+    border: 1px solid var(--line); border-bottom-width: 2px; background: var(--card);
+  }
+  pre {
+    background: var(--code); border: 1px solid var(--line); border-radius: 10px;
+    padding: 12px 14px; overflow-x: auto; margin: 8px 0;
+  }
+  .muted { color: var(--muted); }
+
+  /* диагностика */
+  .status { display: grid; grid-template-columns: repeat(auto-fill, minmax(240px, 1fr)); gap: 10px; margin-bottom: 14px; }
+  .stat { display: flex; gap: 10px; align-items: flex-start; }
+  .dot { width: 10px; height: 10px; border-radius: 50%; margin-top: 7px; flex-shrink: 0; background: var(--muted); }
+  .dot.ok { background: var(--ok); }
+  .dot.bad { background: var(--err); }
+  .dot.warn { background: var(--warn); }
+  .stat b { display: block; font-weight: 600; }
+  .stat span { font-size: 13px; color: var(--muted); overflow-wrap: anywhere; }
+  .update-row { display: flex; gap: 12px; align-items: center; flex-wrap: wrap; }
+  #update-msg { font-size: 14px; }
+  #update-msg.ok { color: var(--ok); }
+  #update-msg.err { color: var(--err); white-space: pre-wrap; }
+
+  /* схема */
+  .flow { display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 8px; counter-reset: step; }
+  .step {
+    background: var(--card); border: 1px solid var(--line); border-radius: 12px;
+    padding: 12px; position: relative; counter-increment: step;
+  }
+  .step::before {
+    content: counter(step); display: inline-grid; place-items: center;
+    width: 22px; height: 22px; border-radius: 50%; font-size: 12px; font-weight: 700;
+    background: var(--accent-soft); color: var(--accent); margin-bottom: 6px;
+  }
+  .step b { display: block; margin-bottom: 2px; }
+  .step span { font-size: 13px; color: var(--muted); }
+
+  table { width: 100%; border-collapse: collapse; }
+  td { padding: 10px 0; border-top: 1px solid var(--line); vertical-align: top; }
+  tr:first-child td { border-top: 0; }
+  td:first-child { width: 32%; padding-right: 14px; font-weight: 600; }
+
+  /* спойлеры неполадок */
+  details { border-top: 1px solid var(--line); }
+  details:first-child { border-top: 0; }
+  summary { cursor: pointer; padding: 12px 0; font-weight: 600; list-style: none; display: flex; gap: 10px; }
+  summary::-webkit-details-marker { display: none; }
+  summary::before { content: '▸'; color: var(--muted); transition: transform .15s; }
+  details[open] summary::before { transform: rotate(90deg); }
+  .fix { padding: 0 0 14px 22px; }
+  .fix ol, .fix ul { margin: 4px 0; padding-left: 20px; }
+  .fix li { margin: 4px 0; }
+  .note {
+    border-left: 3px solid var(--accent); background: var(--code);
+    padding: 8px 12px; border-radius: 0 8px 8px 0; margin: 10px 0; font-size: 14px;
+  }
+  .warn-note {
+    border-left: 3px solid var(--warn); background: var(--code);
+    padding: 8px 12px; border-radius: 0 8px 8px 0; margin: 10px 0; font-size: 14px;
+  }
+
+  @media (max-width: 720px) {
+    td:first-child { width: 38%; }
+  }
+</style>
+</head>
+<body>
+<main>
+  <a class="back" href="/">← Вернуться к скачиванию</a>
+  <h1>Справка и руководство пользователя</h1>
+  <p class="sub">Как работает сервис в Docker на сервере / NAS и решение частых вопросов.</p>
+
+  <h2>Диагностика контейнера</h2>
+  <section class="card">
+    <div class="status" id="status"><span class="muted">Проверяю компоненты контейнера…</span></div>
+    <div class="update-row">
+      <button id="update" type="button">Обновить yt-dlp</button>
+      <span id="update-msg" class="muted">Контейнер автоматически обновляет yt-dlp раз в сутки или по кнопке здесь.</span>
+    </div>
+  </section>
+
+  <h2>Как пользоваться сервисом</h2>
+  <section class="card">
+    <table>
+      <tr>
+        <td>Куда скачивать</td>
+        <td>
+          На панели под шапкой доступен мгновенный переключатель:
+          <ul>
+            <li><b>📱 На телефон / ПК:</b> готовый файл сразу автоматически передаётся в загрузки вашего текущего браузера.</li>
+            <li><b>🖥 На сервер (NAS):</b> файл сохраняется напрямую в постоянную сетевую папку хранилища (<code>/volume2/shara/Downloads</code>) для доступа по SMB, DLNA или Plex.</li>
+          </ul>
+        </td>
+      </tr>
+      <tr>
+        <td>По ссылке</td>
+        <td>Вставьте ссылку на видео, плейлист или страницу (YouTube, VK, Rutube, TikTok и 1000+ сайтов). Сервис мгновенно определит доступные качества видео (до 4K) и аудиопотоки (MP3/M4A).</td>
+      </tr>
+      <tr>
+        <td>Поиск музыки</td>
+        <td>Во вкладке «Музыка» напишите исполнителя и трек. Сервис выдаст 10 лучших результатов с обложками. Кнопка <b>MP3</b> сразу скачивает готовую композицию со встроенной обложкой и метатегами.</td>
+      </tr>
+      <tr>
+        <td>Прослушивание (плеер)</td>
+        <td>Кнопка <b>▶</b> на обложке трека или кнопка «Послушать» в карточке запускает встроенный веб-плеер внизу экрана без скачивания. Плеер поддерживает перемотку, паузу (Пробел) и кнопку быстрого скачивания текущего трека в MP3.</td>
+      </tr>
+      <tr>
+        <td>Кусок видео</td>
+        <td>В блоке «Скачать только кусок» укажите временной интервал (например, с <code>1:20</code> до <code>3:45</code>). Сервис автоматически вырежет фрагмент без потери качества.</td>
+      </tr>
+      <tr>
+        <td>Пакетная загрузка</td>
+        <td>Во вкладке «По ссылке» вставьте список ссылок столбиком (каждую с новой строки). Сервис предложит единый формат для всех ссылок и скачает их по очереди.</td>
+      </tr>
+    </table>
+  </section>
+
+  <h2 id="pwa">📱 Мобильное приложение PWA и кнопка «Поделиться»</h2>
+  <section class="card">
+    <p>Сервис работает как полноценное приложение на смартфонах без установки из Google Play или App Store:</p>
+    <ul>
+      <li><b>Android (Chrome / Samsung Internet):</b> Нажмите кнопку <b>«📱 Установить PWA»</b> в шапке сайта или откройте меню браузера <b>⋮</b> ➡️ <b>«Установить приложение»</b>.</li>
+      <li><b>iPhone / iPad (Safari):</b> В Safari нажмите кнопку <b>«Поделиться»</b> (квадрат со стрелкой вверх ⬆️) ➡️ выберите <b>«На экран «Домой»</b> (➕).</li>
+    </ul>
+    <div class="note">
+      <b>⚡ Интеграция с системным меню смартфона:</b><br>
+      После установки приложения вы можете открыть официальное приложение <b>YouTube</b>, <b>VK Видео</b>, <b>Rutube</b> или Telegram, нажать под роликом <b>«Поделиться»</b> и выбрать <b>«Скачиватель»</b>! Ссылка автоматически передастся в сервис и сразу запустится выбор качества.
+    </div>
+  </section>
+
+  <h2 id="vpn">🛡 Обход замедления и блокировок (Tinyproxy / VPN)</h2>
+  <section class="card">
+    <p>На сервере настроена маршрутизация через локальный HTTP-прокси (Tinyproxy + AmneziaWG / WireGuard):</p>
+    <ul>
+      <li>Отметьте галочку <b>«🛡 Работать через Tinyproxy (VPN)»</b> на главной странице (по умолчанию включена).</li>
+      <li>Укажите адрес прокси (например, <code>http://192.168.1.2:8899</code>). Индикатор рядом покажет статус и внешний IP.</li>
+      <li><b>Главное преимущество:</b> вам и вашим близким <b>не нужно включать VPN на телефонах или компьютерах</b> — контейнер сам забирает заблокированный контент через удалённый туннель.</li>
+    </ul>
+  </section>
+
+  <h2 id="cookies">🍪 Авторизация и Cookies (18+, закрытые видео)</h2>
+  <section class="card">
+    <p>Для скачивания видео с возрастными ограничениями, роликов, требующих подтверждения аккаунта, или приватных видео:</p>
+    <ol>
+      <li>Экспортируйте куки из настольного браузера в формате Netscape (с помощью расширения <b>Get cookies.txt LOCALLY</b>).</li>
+      <li>Нажмите кнопку <b>«Загрузить cookies.txt»</b> на главной странице скачивателя или просто <b>перетащите файл cookies.txt мышкой в окно браузера</b>.</li>
+      <li>Сервер автоматически проверит файл, сохранит его в директорию <code>/config/cookies.txt</code> и покажет статус <code>🟢 Подключен</code> со списком доменов.</li>
+      <li>Для удаления куков с сервера используйте кнопку с корзиной 🗑 рядом со статусом.</li>
+    </ol>
+  </section>
+
+  <h2 id="files">📁 Файловый менеджер медиатеки на NAS</h2>
+  <section class="card">
+    <p>Кнопка <b>«Открыть папку»</b> в блоке загрузок открывает встроенный веб-проводник по файлам на сервере:</p>
+    <ul>
+      <li><b>Просмотр и поиск:</b> отображает все скачанные файлы в папке <code>/volume2/shara/Downloads</code> и свободное место на диске.</li>
+      <li><b>Стриминг:</b> видео и музыку можно смотреть прямо из браузера (поддерживается перемотка <code>Range: bytes</code>).</li>
+      <li><b>Скачивание:</b> кнопка со стрелкой скачивает выбранный файл с NAS на ваш телефон или ПК.</li>
+      <li><b>Сетевой доступ:</b> кнопка <b>«Скопировать путь»</b> копирует сетевой SMB-путь (<code>\\192.168.1.2\shara\Downloads</code>) для вставки в Проводник Windows.</li>
+    </ul>
+  </section>
+
+  <h2 id="extension">🧩 Расширение для браузера на ПК</h2>
+  <section class="card">
+    <p>Позволяет отправлять ссылки на скачивание прямо во время сёрфинга в Chrome, Edge, Яндекс.Браузере и Firefox:</p>
+    <ol>
+      <li>В блоке «Скачивать прямо с сайта» нажмите <b>«Скачать расширение (zip)»</b> (адрес сервера уже прописан внутри).</li>
+      <li>Распакуйте архив в постоянную папку на компьютере.</li>
+      <li>В браузере откройте страницу расширений (<code>chrome://extensions</code> или <code>edge://extensions</code>).</li>
+      <li>Включите <b>«Режим разработчика»</b> ➡️ нажмите <b>«Загрузить распакованное расширение»</b> ➡️ выберите распакованную папку.</li>
+      <li>Теперь при просмотре любого видео кликайте по иконке расширения в панели или правой кнопкой мыши по ссылке: <b>«Скачать в программе»</b>.</li>
+    </ol>
+  </section>
+
+  <h2 id="troubleshooting">Устранение неполадок</h2>
+  <section class="card">
+    <details open>
+      <summary>YouTube не отдаёт форматы или выдаёт ошибку при анализе</summary>
+      <div class="fix">
+        <ol>
+          <li>Нажмите кнопку <b>«Обновить yt-dlp»</b> вверху этой страницы — сервис обновит движок и безопасно перезапустит контейнер.</li>
+          <li>Убедитесь, что включена галочка <b>Tinyproxy (VPN)</b> и горит зелёный индикатор соединения.</li>
+          <li>Если YouTube просит вход («Sign in to confirm you're not a bot») — загрузите свежий <code>cookies.txt</code>.</li>
+        </ol>
+      </div>
+    </details>
+
+    <details>
+      <summary>Проблемы с правами доступа к скачанным файлам в сетевой папке</summary>
+      <div class="fix">
+        <p>Контейнер Universal Downloader использует механизм <code>gosu</code> и переменные <code>PUID</code> / <code>PGID</code>:</p>
+        <ul>
+          <li>В <code>docker-compose.yml</code> заданы <code>PUID=1000</code> и <code>PGID=100</code> (стандарт для пользователей Synology/Linux).</li>
+          <li>Все файлы создаются сразу с правами вашего пользователя, поэтому они без проблем открываются и удаляются по SMB.</li>
+        </ul>
+      </div>
+    </details>
+
+    <details>
+      <summary>Команды управления контейнером на сервере</summary>
+      <div class="fix">
+        <p>Если требуется перезапустить или проверить контейнер через SSH на NAS:</p>
+        <pre># Перезапуск контейнера:
+docker compose restart
+
+# Просмотр логов в реальном времени:
+docker compose logs -f
+
+# Чистая пересборка контейнера:
+docker compose build --no-cache && docker compose up -d</pre>
+      </div>
+    </details>
+  </section>
+</main>
+
+<script>
+const $ = id => document.getElementById(id);
+const esc = s => String(s ?? '').replace(/[&<>"']/g, c =>
+  ({'&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;'}[c]));
+
+function stat(state, title, text) {
+  return `<div class="stat"><i class="dot ${state}"></i><div><b>${esc(title)}</b><span>${esc(text)}</span></div></div>`;
+}
+
+async function loadStatus() {
+  try {
+    const s = await (await fetch('/api/status')).json();
+    const js = s.deno || s.node;
+    $('status').innerHTML = [
+      stat('ok', 'yt-dlp', `версия ${s.ytdlp}`),
+      stat(s.ffmpeg ? 'ok' : 'bad', 'ffmpeg', s.ffmpeg ? 'установлен в контейнере' : 'не найден'),
+      stat(js ? 'ok' : 'bad', 'JS-движок (Deno)', js ? (s.deno ? s.deno.split('(')[0].trim() : `Node.js ${s.node}`) : 'не найден'),
+      stat(s.cookies ? 'ok' : 'warn', 'cookies.txt', s.cookies ? '🟢 подключен' : 'не загружен (нужен для 18+)'),
+      stat('ok', 'Python', s.python),
+      stat('ok', 'Папка хранилища', s.downloads),
+    ].join('');
+  } catch {
+    $('status').innerHTML = stat('bad', 'Контейнер не отвечает', 'Проверьте docker compose ps на сервере');
+  }
+}
+
+$('update').addEventListener('click', async () => {
+  const btn = $('update'), msg = $('update-msg');
+  btn.disabled = true;
+  btn.textContent = 'Обновляю yt-dlp…';
+  msg.className = 'muted';
+  msg.textContent = 'Идёт обновление пакета yt-dlp...';
+  try {
+    const res = await fetch('/api/update', {method: 'POST', headers: {'Content-Type': 'application/json'}, body: '{}'});
+    const d = await res.json();
+    if (!res.ok) throw new Error(d.error || 'Не получилось обновить');
+    msg.className = 'ok';
+    msg.textContent = d.before === d.after
+      ? `У вас уже самая свежая версия (${d.after}).`
+      : `Обновлено: ${d.before} → ${d.after}! Контейнер перезапускается... Обновите страницу через пару секунд.`;
+  } catch (e) {
+    msg.className = 'err';
+    msg.textContent = `Ошибка: ${e.message}`;
+  } finally {
+    btn.disabled = false;
+    btn.textContent = 'Обновить yt-dlp';
+  }
+});
+
+loadStatus();
+</script>
+</body>
+</html>
